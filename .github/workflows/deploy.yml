@@ -22,13 +22,13 @@ jobs:
 
       - name: Build
         env:
-          BASE_PATH: "/${{ github.event.repository.name }}"
+          BASE_PATH: "/${{ github.event.repository.name }}" # Asegúrate que sea necesario
         run: npm run build
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/
+          path: "build/" # Verifica si tu carpeta de build es "build" o "dist" según tu setup
 
   deploy:
     needs: build_site
@@ -44,9 +44,6 @@ jobs:
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v4
-
-      - name: Download build output
-        uses: actions/download-pages-artifact@v3
 
       - name: Deploy
         id: deployment
