@@ -1,0 +1,48 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    background: #0d0d0d;
+    color: #f0e6d2;
+    font-family: 'Roboto', sans-serif;
+  }
+  
+h1, h2 {
+    font-family: sans-serif;
+    color: #ad9508;
+    margin: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;    
+}
+
+input, button {
+    background: #1c1c1c;
+    border: 1px solid #ad9508;
+    color: #f0e6d2;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+button:hover {
+    background: #ffd700;
+    color: #0d0d0d;
+    cursor: pointer;
+}
+
+svg {
+    background: #1c1c1c;
+    border: 1px solid #333;
+    display: block;
+    margin: 1rem auto;
+}
+
+#tooltip {
+    background: #222;
+    color: #000000;
+    border: 1px solid #ffd700;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+  
+  
