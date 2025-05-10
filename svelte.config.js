@@ -5,7 +5,7 @@ const config = {
 	kit: {
 		adapter: adapter({ fallback: '404.html' }),
 		paths: {
-  			base: '/timbergraf'
+			base: process.argv.includes('dev') ? '' : process.env.BASE_PATH,
 		},
 	},
 };
