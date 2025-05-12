@@ -1,0 +1,120 @@
+{
+  "root": "22241138000115",
+  "paths": [
+    {
+      "weight": 3660.24,
+      "nodes": [
+        {
+          "id": "19989128847",
+          "latitude": -8.752506,
+          "longitude": -65.86995300000001,
+          "type": "MANEJO"
+        },
+        {
+          "id": "21565220000132",
+          "latitude": -9.771639,
+          "longitude": -66.347889,
+          "type": "PTO_IBAMA"
+        },
+        {
+          "id": "22241138000115",
+          "latitude": -10.0155481,
+          "longitude": -67.7820949,
+          "type": "FINAL"
+        }
+      ]
+    },
+    {
+      "weight": 1912.58,
+      "nodes": [
+        {
+          "id": "25902199972",
+          "latitude": -7.193489,
+          "longitude": -63.224386,
+          "type": "MANEJO"
+        },
+        {
+          "id": "21565220000132",
+          "latitude": -9.771639,
+          "longitude": -66.347889,
+          "type": "PTO_IBAMA"
+        },
+        {
+          "id": "22241138000115",
+          "latitude": -10.0155481,
+          "longitude": -67.7820949,
+          "type": "FINAL"
+        }
+      ]
+    },
+    {
+      "weight": 1721.28,
+      "nodes": [
+        {
+          "id": "11083873814",
+          "latitude": -9.61,
+          "longitude": -66.247778,
+          "type": "MANEJO"
+        },
+        {
+          "id": "18852726000118",
+          "latitude": -9.771889,
+          "longitude": -66.34791700000001,
+          "type": "PTO_IBAMA"
+        },
+        {
+          "id": "22241138000115",
+          "latitude": -10.0155481,
+          "longitude": -67.7820949,
+          "type": "FINAL"
+        }
+      ]
+    },
+    {
+      "weight": 1016.02,
+      "nodes": [
+        {
+          "id": "10329193000182",
+          "latitude": -8.905725,
+          "longitude": -66.039886,
+          "type": "MANEJO"
+        },
+        {
+          "id": "21565220000132",
+          "latitude": -9.771639,
+          "longitude": -66.347889,
+          "type": "PTO_IBAMA"
+        },
+        {
+          "id": "22241138000115",
+          "latitude": -10.0155481,
+          "longitude": -67.7820949,
+          "type": "FINAL"
+        }
+      ]
+    },
+    {
+      "weight": 924.16,
+      "nodes": [
+        {
+          "id": "5317512000108",
+          "latitude": -9.589369,
+          "longitude": -65.529358,
+          "type": "MANEJO"
+        },
+        {
+          "id": "21565220000132",
+          "latitude": -9.771639,
+          "longitude": -66.347889,
+          "type": "PTO_IBAMA"
+        },
+        {
+          "id": "22241138000115",
+          "latitude": -10.0155481,
+          "longitude": -67.7820949,
+          "type": "FINAL"
+        }
+      ]
+    }
+  ]
+}

@@ -1,198 +1,188 @@
 <script>
   import { onMount } from 'svelte';
   import * as d3 from 'd3';
-  import grafoCompleto from '$lib/data/grafo_timber.json';
-
-  let graphData = null;
-  let filteredGraph = { nodes: [], links: [] };
-  let selectedNodeId = '';
-  let highlightedNodeId = null;
-  let routeLinks = [];  // Links a resaltar
+  import caminos from '$lib/data/caminos.json';
 
   let width = 0;
   let height = 0;
+  let svg;
+  let map;
+  let L;
 
-  onMount(() => {
-    graphData = grafoCompleto;
-    updateSize();
-    window.addEventListener('resize', updateSize);
-  });
-
+  // Actualiza dimensiones
   function updateSize() {
     width = window.innerWidth;
-    height = window.innerHeight - 80; 
+    height = window.innerHeight - 80;
+    if (svg) {
+      svg
+        .attr('width', width / 2)
+        .attr('height', height);
+    }
   }
 
-  function searchNode(nodeId) {
-    const node = graphData.nodes.find(d => d.id === nodeId);
-    if (!node) return;
+  onMount(async () => {
+    // Carga Leaflet solo en cliente
+    const module = await import('leaflet');
+    L = module.default;
+    await import('leaflet/dist/leaflet.css');
 
-    highlightedNodeId = nodeId;
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    buildAndDraw();
+  });
 
-    const componentId = node.component;
-
-    const nodesInComponent = graphData.nodes.filter(d => d.component === componentId);
-    const nodeIdsInComponent = new Set(nodesInComponent.map(d => d.id));
-
-    let linksInComponent = graphData.links.filter(d =>
-      nodeIdsInComponent.has(d.source) && nodeIdsInComponent.has(d.target)
-    ).map(d => ({
-      source: typeof d.source === 'object' ? d.source.id : d.source,
-      target: typeof d.target === 'object' ? d.target.id : d.target,
-      weight: d.weight
-    }));
-
-    const adjacency = new Map();
-    for (const node of nodesInComponent) {
-      adjacency.set(node.id, []);
-    }
-    for (const link of linksInComponent) {
-      adjacency.get(link.source).push(link.target);
-      adjacency.get(link.target).push(link.source);
-    }
-
-    const visited = new Set([nodeId]);
-    const queue = [nodeId];
-    const resultNodes = new Set([nodeId]);
-
-    const MAX_NODES = 30;
-
-    while (queue.length > 0 && resultNodes.size < MAX_NODES) {
-      const current = queue.shift();
-      for (const neighbor of adjacency.get(current)) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          resultNodes.add(neighbor);
-
-          if (resultNodes.size >= MAX_NODES) break;
-
-          queue.push(neighbor);
+  function buildAndDraw() {
+    // 1) Construir nodos y enlaces de los caminos
+    const nodesMap = new Map();
+    const links = [];
+    caminos.paths.forEach(pathObj => {
+      const path = pathObj.nodes;
+      for (let i = 0; i < path.length; i++) {
+        const n = path[i];
+        nodesMap.set(n.id, { ...n });
+        if (i + 1 < path.length) {
+          links.push({ source: path[i].id, target: path[i+1].id, weight: pathObj.weight });
         }
       }
-    }
+    });
+    const nodes = Array.from(nodesMap.values());
 
-    const nodes = graphData.nodes.filter(d => resultNodes.has(d.id));
-    const nodeIds = new Set(nodes.map(d => d.id));
-
-    const links = graphData.links.filter(d =>
-      nodeIds.has(d.source) && nodeIds.has(d.target)
-    ).map(d => ({
-      source: typeof d.source === 'object' ? d.source.id : d.source,
-      target: typeof d.target === 'object' ? d.target.id : d.target,
-      weight: d.weight
-    }));
-
-    filteredGraph = { nodes, links };
-
-    // Para este ejemplo, definimos una ruta manual (o puedes cargar de rutasOptimas)
-    routeLinks = [
-      { source: '2506383000108', target: '2506383000109' },
-      { source: '2506383000109', target: '2506383000110' },
-    ]; // este sería el camino óptimo a resaltar
-
-    drawGraph(filteredGraph);
-  }
-
-  function drawGraph(graph) {
-    d3.select('svg').selectAll('*').remove();  
-
-    const svg = d3.select('svg')
-      .attr('width', width)
+    // 2) Preparar SVG
+    svg = d3.select('svg')
+      .attr('width', width / 2)
       .attr('height', height);
+    svg.selectAll('*').remove();
 
-    const nodeRadius = 10;
+    // Flecha para enlaces
+    svg.append('defs').append('marker')
+      .attr('id','arrow')
+      .attr('viewBox','0 -5 10 10')
+      .attr('refX',15)
+      .attr('refY',0)
+      .attr('markerWidth',6)
+      .attr('markerHeight',6)
+      .attr('orient','auto')
+      .append('path')
+        .attr('d','M0,-5L10,0L0,5')
+        .attr('fill','#999');
 
-    const simulation = d3.forceSimulation(graph.nodes)
-      .force('link', d3.forceLink(graph.links).id(d => d.id).distance(100))
-      .force('charge', d3.forceManyBody().strength(-200))
-      .force('center', d3.forceCenter(width / 2, height / 2));
+    // 3) Simulación de fuerza
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d=>d.id).distance(100).strength(1))
+      .force('charge', d3.forceManyBody().strength(-300))
+      .force('center', d3.forceCenter((width/2)/2, height/2));
 
+    // 4) Dibujar enlaces
     const link = svg.append('g')
+      .attr('stroke', '#999')
       .selectAll('line')
-      .data(graph.links)
+      .data(links)
       .join('line')
-      .attr('stroke-width', d => {
-        const isRoute = routeLinks.some(r => r.source === d.source && r.target === d.target);
-        return isRoute ? 4 : Math.sqrt(d.weight || 1);
-      })
-      .attr('stroke', d => {
-        const isRoute = routeLinks.some(r => r.source === d.source && r.target === d.target);
-        return isRoute ? '#FFD700' : '#999';
+      .attr('stroke-width', 2)
+      .attr('marker-end', 'url(#arrow)');
+
+    // 5) Dibujar nodos y labels
+    const node = svg.append('g')
+      .selectAll('g')
+      .data(nodes)
+      .join('g')
+      .attr('class','node')
+      .call(drag(simulation))
+      .on('click', (event, d) => {
+        if (d.type === 'MANEJO') renderMapForPath(d);
       });
 
-    const node = svg.append('g')
-      .selectAll('circle')
-      .data(graph.nodes)
-      .join('circle')
-      .attr('r', nodeRadius)
-      .attr('fill', d => colorScale(d))
-      .attr('stroke', d => d.id === highlightedNodeId ? '#FFD700' : '#fff')
-      .attr('stroke-width', d => d.id === highlightedNodeId ? 3 : 1.5)
-      .call(drag(simulation));
+    node.append('circle')
+      .attr('r', 8)
+      .attr('fill', d => d.type==='MANEJO' ? '#2ca02c' : '#ccc');
 
-    const tooltip = d3.select("#tooltip");
+    node.append('text')
+      .text(d => d.id)
+      .attr('x', 10)
+      .attr('y', 3)
+      .attr('fill', '#fff')
+      .style('font-size', '10px');
 
-    node.on('mouseover', (event, d) => {
-        tooltip.style("display", "block")
-          .html(`<strong>ID: ${d.id}</strong><br/>
-                Tipo: ${d.type}`)
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY + 10) + "px");
-      })
-      .on('mouseout', () => {
-        tooltip.style("display", "none");
-      })
-      .on('click', d => showDetails(d));
-
+    // 6) Tick: actualizar posiciones con clamp actualizar posiciones con clamp
     simulation.on('tick', () => {
-      link
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y);
+      const r = 8;
+      const svgW = width/2;
+      const svgH = height;
+      const minX = r, maxX = svgW - r;
+      const minY = r, maxY = svgH - r;
 
-      node
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y);
+      link
+        .attr('x1', d => { d.source.x = clamp(d.source.x, minX, maxX); return d.source.x; })
+        .attr('y1', d => { d.source.y = clamp(d.source.y, minY, maxY); return d.source.y; })
+        .attr('x2', d => { d.target.x = clamp(d.target.x, minX, maxX); return d.target.x; })
+        .attr('y2', d => { d.target.y = clamp(d.target.y, minY, maxY); return d.target.y; });
+
+      node.attr('transform', d => {
+        d.x = clamp(d.x, minX, maxX);
+        d.y = clamp(d.y, minY, maxY);
+        return `translate(${d.x},${d.y})`;
+      });
     });
 
-    function showDetails(d) {
-      alert(`ID: ${d.id}\nTipo: ${d.type}`);
-    }
+    // Inicializa mapa
+    initMap();
+  }
 
-    function drag(simulation) {
-      return d3.drag()
-        .on('start', event => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          event.subject.fx = event.subject.x;
-          event.subject.fy = event.subject.y;
-        })
-        .on('drag', event => {
-          event.subject.fx = event.x;
-          event.subject.fy = event.y;
-        })
-        .on('end', event => {
-          if (!event.active) simulation.alphaTarget(0);
-          event.subject.fx = null;
-          event.subject.fy = null;
-        });
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function initMap() {
+    if (!map && L) {
+      map = L.map('map').setView([0,0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
     }
   }
 
-  // Escala fija de colores
-  function colorScale(d) {
-    if (d.type === 'PTO_IBAMA') return '#1f77b4';
-    if (d.type === 'MANEJO') return '#2ca02c';
-    if (d.type === 'FINAL') return '#d62728';
-    return '#ccc';
+  function renderMapForPath(node) {
+    // traza la ruta completa desde caminos.paths
+    const pathObj = caminos.paths.find(p => p.nodes.some(n=>n.id===node.id));
+    if (!pathObj) return;
+    const coords = pathObj.nodes
+      .map(n => [n.latitude, n.longitude])
+      .filter(c => c[0]!=null && c[1]!=null);
+    if (!map) return;
+    map.eachLayer(layer => {
+      if (layer instanceof L.Polyline || layer instanceof L.CircleMarker) map.removeLayer(layer);
+    });
+    L.polyline(coords, { color: 'gold', weight: 4 }).addTo(map);
+    coords.forEach(c => L.circleMarker(c, { radius: 5, color: 'red' }).addTo(map));
+    map.fitBounds(coords);
+  }
+
+  function drag(sim) {
+    return d3.drag()
+      .on('start', e => {
+        if (!e.active) sim.alphaTarget(0.3).restart();
+        e.subject.fx = e.subject.x;
+        e.subject.fy = e.subject.y;
+      })
+      .on('drag', e => {
+        e.subject.fx = e.x;
+        e.subject.fy = e.y;
+      })
+      .on('end', e => {
+        if (!e.active) sim.alphaTarget(0);
+        e.subject.fx = null;
+        e.subject.fy = null;
+      });
   }
 </script>
 
-<div class="grafo-container">
-  <input placeholder="ID del nodo" bind:value={selectedNodeId} />
-  <button on:click={() => searchNode(selectedNodeId)}>Buscar</button>
+<style>
+  div.wrapper { display: flex; }
+  svg { background: #1c1c1c; }
+  #map { flex:1; height:100vh; }
+</style>
 
-  <svg width={width} height={height}></svg>
-
-  <div id="tooltip" style="position: absolute; display: none; background: white; border: 1px solid #ccc; padding: 5px;"></div>
+<div class="wrapper">
+  <svg></svg>
+  <div id="map"></div>
 </div>
